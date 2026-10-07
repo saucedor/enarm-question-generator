@@ -1,0 +1,7 @@
+import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/action-button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Upload, Download } from 'lucide-react';
+export default { title: 'ENARM/Tema y botones', parameters: { layout: 'padded' } };
+export const Referencia = { render: () => <div className="max-w-xl space-y-8"><div><h1 className="text-3xl font-semibold tracking-tight">ENARM · Sistema visual</h1><p className="mt-2 text-muted-foreground">Paleta de la referencia y componentes oficiales shadcn/ui.</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{[['Fondo','#F7F6F3'],['Texto','#0E101A'],['Secundario','#66697F'],['Borde','#DDDDE3'],['Azul','#18368E'],['Foco','#5383EC']].map(([name,color])=><div key={name} className="overflow-hidden rounded-lg border"><div className="h-16 border-b" style={{background:color}}/><div className="p-3 text-sm">{name}<code className="mt-1 block text-xs text-muted-foreground">{color}</code></div></div>)}</div><div className="space-y-3"><Label htmlFor="example">Tema</Label><Input id="example" placeholder="Evaluación inicial" className="h-11"/></div><div className="space-y-4"><ActionButton>Ejecutar prueba</ActionButton><div className="grid gap-3 sm:grid-cols-2"><Button variant="outline" className="h-11"><Upload/>Cargar archivo</Button><Button variant="outline" className="h-11"><Download/>Exportar JSON</Button></div></div></div> };

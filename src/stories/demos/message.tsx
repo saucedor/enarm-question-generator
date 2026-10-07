@@ -1,0 +1,3 @@
+import { Message, MessageGroup, MessageContent, MessageHeader, MessageFooter } from '@/components/ui/message';
+import { Bubble } from '@/components/ui/bubble';
+export default function Demo() { return <MessageGroup><Message align="end"><MessageContent><MessageHeader>Tú</MessageHeader><Bubble variant="secondary">Preparar una prueba de infraestructura.</Bubble><MessageFooter>10:30</MessageFooter></MessageContent></Message><Message><MessageContent><MessageHeader>ENARM</MessageHeader><Bubble variant="outline">La solicitud está guardada.</Bubble><MessageFooter>Ejemplo de interfaz</MessageFooter></MessageContent></Message></MessageGroup> }

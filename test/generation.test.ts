@@ -1,0 +1,50 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
+import {evidencePassages} from '../server/evidence.js';
+import {generateClinical} from '../server/generation.js';
+import {RunInput,type EvidenceSource} from '../shared/domain.js';
+import {fixtureGenerator,sourceText} from './fixtures/clinical.js';
+const input=RunInput.parse({specialty:'Pruebas',topic:'señal',difficulty:'básica',count:1,sourceMode:'documento',documentId:'00000000-0000-4000-8000-000000000001'});
+const sources:EvidenceSource[]=[{id:input.documentId!,title:'Fixture',kind:'documento',url:'/fixture',edition:'prueba',retrievedAt:'2026-10-07',sha256:'fixture',pages:[{page:1,text:sourceText}],warnings:[]}];
+test('real SDK request/parse path, reviewer and explicit failure handling against a local synthetic provider',async()=>{
+ const requests:any[]=[];let responses:any[]=[];let httpStatus=200;
+ const server=createServer(async(req,res)=>{let body='';for await(const chunk of req)body+=chunk;requests.push(JSON.parse(body));res.setHeader('Content-Type','application/json');res.statusCode=httpStatus;
+  if(httpStatus!==200){res.end(JSON.stringify({error:{message:'Synthetic provider unavailable',type:'test_error',code:'test_error'}}));return;}
+  const content=responses.shift();
+  if(req.url?.endsWith('/chat/completions')){res.end(JSON.stringify({id:'chat_local_fixture',object:'chat.completion',created:0,model:'openai/gpt-5.4-mini',choices:[{index:0,message:{role:'assistant',content:JSON.stringify(content)},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:20,total_tokens:30,cost:0.0000975}}));return;}
+  res.end(JSON.stringify({id:'resp_local_fixture',object:'response',created_at:0,status:'completed',model:'gpt-5.4-mini-2026-03-17',output:[{id:'msg_fixture',type:'message',status:'completed',role:'assistant',content:[{type:'output_text',text:JSON.stringify(content),annotations:[]}]}],usage:{input_tokens:10,output_tokens:20,total_tokens:30,input_tokens_details:{cached_tokens:0},output_tokens_details:{reasoning_tokens:0}}}));
+ });server.listen(0,'127.0.0.1');await once(server,'listening');const address=server.address();assert.ok(address&&typeof address==='object');
+ const previous={key:process.env.OPENAI_API_KEY,url:process.env.OPENAI_BASE_URL,routerKey:process.env.OPENROUTER_API_KEY,routerModel:process.env.OPENROUTER_MODEL,reviewModel:process.env.OPENROUTER_REVIEW_MODEL,seriesModel:process.env.OPENROUTER_SERIES_MODEL};delete process.env.OPENROUTER_API_KEY;delete process.env.OPENROUTER_MODEL;delete process.env.OPENROUTER_REVIEW_MODEL;delete process.env.OPENROUTER_SERIES_MODEL;process.env.OPENAI_API_KEY='local-synthetic-provider';process.env.OPENAI_BASE_URL=`http://127.0.0.1:${address.port}/v1`;
+ try{
+  const fixture=await fixtureGenerator(input,sources);const content={...fixture.content,cases:fixture.content.cases.map(c=>({...c,questions:c.questions.map(q=>({...q,citations:q.citations.map(cite=>({evidenceId:evidencePassages(sources)[0].id,claim:cite.claim}))}))}))};const emptyPatch={unableReason:null,cases:[],questions:[],options:[]};const review={questions:content.cases.flatMap(c=>c.questions).map(q=>({id:q.id,supported:true,issues:[],warnings:[]})),caseIssues:[],warnings:[]};
+  responses=[content,review];const result=await generateClinical(input,sources);assert.equal(result.usage.length,2);assert.equal(result.usage[0].inputTokens,10);assert.equal(result.usage[0].outputTokens,20);assert.ok(result.usage[0].estimatedCostUsd!>0);
+  assert.equal(requests.length,2);assert.equal(requests[0].store,false);assert.equal(requests[1].store,false);assert.equal(requests[0].text.format.type,'json_schema');assert.match(requests[0].input[1].content,/"questionsPerCase":1/);assert.equal(requests[1].text.format.name,'enarm_review');
+  // The router credential must go only to OpenRouter; intercept the network before using a fake key.
+  const originalFetch=globalThis.fetch;process.env.OPENROUTER_API_KEY='local-openrouter-fixture';
+  try{
+   globalThis.fetch=async(url,init)=>{assert.equal(String(url),'https://openrouter.ai/api/v1/chat/completions');return originalFetch(`http://127.0.0.1:${address.port}/v1/chat/completions`,init)};
+   responses=[content,review];const routed=await generateClinical(input,sources);assert.equal(routed.usage[0].provider,'openrouter');assert.equal(requests[2].model,'openai/gpt-5.4-mini');assert.equal(requests[2].provider.require_parameters,true);assert.equal(requests[3].model,'openai/gpt-5.4');assert.equal(requests[3].reasoning.effort,'medium');
+   const next=requests.length;responses=[content,{...review,caseIssues:['Corrige el borrador sintético.']},{...emptyPatch,options:[{questionId:content.cases[0].questions[0].id,index:1,text:null,explanation:'Esta alternativa requiere el indicador tres, ausente en el caso sintético.'}]},review];const corrected=await generateClinical(input,sources);assert.equal(corrected.usage.length,4);assert.equal(requests[next+2].model,'openai/gpt-5.4');assert.ok(corrected.issues.some(i=>i.code==='automatic_revision'));assert.equal(corrected.content.cases[0].narrative,content.cases[0].narrative);assert.equal(corrected.content.cases[0].questions[0].options[0].text,content.cases[0].questions[0].options[0].text);assert.equal(corrected.content.cases[0].questions[0].options[1].explanation,'Esta alternativa requiere el indicador tres, ausente en el caso sintético.');assert.equal(requests[next+2].response_format.json_schema.name,'enarm_corrections');
+   const seriesInput=RunInput.parse({...input,format:'seriadas',count:2,caseCount:1,questionsPerCase:2});const seriesFixture=await fixtureGenerator(seriesInput,sources);const series={...seriesFixture.content,cases:seriesFixture.content.cases.map(c=>({...c,questions:c.questions.map(q=>({...q,citations:q.citations.map(c=>({evidenceId:'E0001',claim:c.claim}))}))}))};const seriesReview={...review,questions:series.cases.flatMap(c=>c.questions).map(q=>({id:q.id,supported:true,issues:[],warnings:[]}))};const seriesStart=requests.length;responses=[series,seriesReview];const seriesResult=await generateClinical(seriesInput,sources);assert.equal(requests[seriesStart].model,'openai/gpt-5.4');assert.equal(seriesResult.content.cases.length,1);assert.equal(seriesResult.content.cases[0].questions.length,2);
+   const patchStart=requests.length;responses=[content,{...review,caseIssues:['Corrige sin perder esta observación.']},{...emptyPatch,options:[{questionId:content.cases[0].questions[0].id,index:99,text:null,explanation:'Texto de reemplazo inválido.'}]},emptyPatch,review];const bounded=await generateClinical(input,sources);assert.equal(bounded.usage.length,5);assert.match(requests[patchStart+3].messages[1].content,/Corrige sin perder esta observación/);assert.deepEqual(bounded.content.cases,result.content.cases);
+   const invalid=structuredClone(content);invalid.cases[0].narrative=' ';responses=[invalid,invalid,invalid];await assert.rejects(generateClinical(input,sources),{code:'MODEL_OUTPUT_INVALID'});
+  }finally{globalThis.fetch=originalFetch;delete process.env.OPENROUTER_API_KEY;}
+  responses=[{...content,insufficientEvidence:true,cases:[],limitations:['Material insuficiente para la solicitud sintética.']}];await assert.rejects(generateClinical(input,sources),{code:'INSUFFICIENT_EVIDENCE'});assert.equal(responses.length,0);
+  const fabricated=structuredClone(content);fabricated.cases[0].questions[0].citations[0].evidenceId='E9999';responses=[fabricated,fabricated,fabricated];await assert.rejects(generateClinical(input,sources),{code:'MODEL_OUTPUT_INVALID'});
+  responses=[content,{...review,questions:review.questions.map(q=>({...q,supported:false}))},emptyPatch,{...review,questions:review.questions.map(q=>({...q,supported:false}))},emptyPatch,{...review,questions:review.questions.map(q=>({...q,supported:false}))}];await assert.rejects(generateClinical(input,sources),{code:'REVIEW_FAILED'});
+  responses=[content,{...review,questions:[]},emptyPatch,{...review,questions:[]},emptyPatch,{...review,questions:[]}];await assert.rejects(generateClinical(input,sources),{code:'REVIEW_INCOMPLETE'});
+  assert.equal(result.content.cases[0].questions[0].citations[0].quote,sourceText);assert.equal(result.content.cases[0].questions[0].citations[0].page,1);
+  const trace:any[]=[];responses=[content,{...review,caseIssues:['Corregir el caso.']},emptyPatch,{...review,caseIssues:['Aún falta corregir.']},emptyPatch,review];const twice=await generateClinical(input,sources,event=>{trace.push(event)});assert.equal(twice.usage.length,6);assert.equal(trace.filter(e=>e.stage==='review').length,3);assert.ok(twice.issues.some(i=>i.message.includes('2 intentos')));
+  responses=[content,{...review,caseIssues:['Falta evidencia.']},{...emptyPatch,unableReason:'No hay una recomendación suficiente.'}];await assert.rejects(generateClinical(input,sources),{code:'INSUFFICIENT_EVIDENCE'});assert.equal(responses.length,0);
+  responses=[fabricated,content,review];const repaired=await generateClinical(input,sources);assert.equal(repaired.usage.length,3);assert.ok(repaired.issues.some(i=>i.code==='automatic_revision'));
+  httpStatus=429;await assert.rejects(generateClinical(input,sources),{code:'MODEL_QUOTA'});
+  httpStatus=402;await assert.rejects(generateClinical(input,sources),{code:'MODEL_QUOTA'});
+  httpStatus=401;await assert.rejects(generateClinical(input,sources),{code:'MODEL_ACCESS'});
+  delete process.env.OPENAI_API_KEY;await assert.rejects(generateClinical(input,sources),{code:'MODEL_NOT_CONFIGURED'});
+ }finally{
+  for(const [key,value] of Object.entries({OPENAI_API_KEY:previous.key,OPENAI_BASE_URL:previous.url,OPENROUTER_API_KEY:previous.routerKey,OPENROUTER_MODEL:previous.routerModel,OPENROUTER_REVIEW_MODEL:previous.reviewModel,OPENROUTER_SERIES_MODEL:previous.seriesModel})){if(value===undefined)delete process.env[key];else process.env[key]=value;}
+  await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));
+ }
+});

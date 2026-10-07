@@ -1,0 +1,3 @@
+import { MessageScrollerProvider, MessageScroller, MessageScrollerViewport, MessageScrollerContent, MessageScrollerItem, MessageScrollerButton } from '@/components/ui/message-scroller';
+import { Bubble } from '@/components/ui/bubble';
+export default function Demo() { return <MessageScrollerProvider><MessageScroller className="h-80 max-w-lg rounded-xl border"><MessageScrollerViewport><MessageScrollerContent className="p-4">{Array.from({length:20},(_,i)=><MessageScrollerItem key={i}><Bubble variant={i%2?'secondary':'outline'}>Mensaje de ejemplo {i+1}</Bubble></MessageScrollerItem>)}</MessageScrollerContent></MessageScrollerViewport><MessageScrollerButton/></MessageScroller></MessageScrollerProvider> }

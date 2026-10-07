@@ -1,0 +1,30 @@
+name: Verify
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: enarm_local
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: enarm_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U enarm_local -d enarm_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - run: npm run test:integration
+        env:
+          TEST_DATABASE_URL: postgresql://enarm_local:local-ci-only@127.0.0.1:5432/enarm_test
+      - run: npm audit --omit=dev --audit-level=high

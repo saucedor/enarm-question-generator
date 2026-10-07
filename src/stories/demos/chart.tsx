@@ -1,0 +1,4 @@
+import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+const config = { solicitudes: { label: 'Solicitudes', color: 'var(--chart-1)' } } satisfies ChartConfig;
+export default function Demo() { return <div className="max-w-xl"><p className="mb-4 text-sm text-muted-foreground">Solicitudes por especialidad · datos de ejemplo</p><ChartContainer config={config} className="h-64 w-full"><BarChart data={[{especialidad:'Medicina',solicitudes:12},{especialidad:'Pediatría',solicitudes:8},{especialidad:'Cirugía',solicitudes:6}]}><CartesianGrid vertical={false}/><XAxis dataKey="especialidad" tickLine={false} axisLine={false}/><ChartTooltip content={<ChartTooltipContent/>}/><Bar dataKey="solicitudes" fill="var(--color-solicitudes)" radius={6}/></BarChart></ChartContainer></div> }

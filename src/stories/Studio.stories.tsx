@@ -1,0 +1,14 @@
+import {useState} from 'react';
+import type {Meta,StoryObj} from '@storybook/react';
+import {StudioSection,FormatChoice,RequestSummary,AcademicNote} from '@/components/studio';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Field} from '@/features/common';
+import {ArrowRight} from 'lucide-react';
+import {RunInput} from '../../shared/domain';
+const initial=RunInput.parse({specialty:'Medicina interna',topic:'Diabetes tipo 2',difficulty:'intermedia',count:3});
+const meta:Meta={title:'ENARM/Estudio',parameters:{layout:'fullscreen'}};
+export default meta;
+export const Composicion:StoryObj={render:function Composition(){const [form,setForm]=useState(initial);return <div className="studio-main"><header className="studio-heading"><div><p className="eyebrow">DISEÑA TU PRÓXIMA SESIÓN</p><h1 className="page-title">¿Qué vamos a evaluar?</h1><p className="page-description">Composición aprobada A. Datos de ejemplo, sin envío.</p></div></header><div className="studio-compose"><div className="studio-form"><StudioSection number="01" title="Contenido clínico" description="Define el tema que quieres evaluar."><Field id="story-topic" label="Tema"><Input id="story-topic" value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})}/></Field></StudioSection><StudioSection number="02" title="Estructura del conjunto" description="Decide cómo se presentan y contestan los casos."><FormatChoice value={form.format} onChange={format=>setForm({...form,format})}/></StudioSection></div><aside><div className="studio-summary"><RequestSummary form={form}/><Button className="studio-primary" disabled>Revisar y generar<ArrowRight/></Button></div><AcademicNote/></aside></div></div>}};
+export const ResumenSeriadas:StoryObj={render:()=> <div className="max-w-sm p-6"><div className="studio-summary"><RequestSummary form={{...initial,format:'seriadas',caseCount:2,questionsPerCase:3,count:6}}/></div></div>};
+export const RevisionDocumento:StoryObj={render:()=> <div className="max-w-lg p-6"><div className="studio-summary"><RequestSummary form={{...initial,sourceMode:'ambos',subtopic:'Objetivos de control',instructions:'Priorizar diagnóstico diferencial.'}} documentName="material-de-ejemplo.pdf" sourceTitles={['Fuente de ejemplo']} detailed/></div></div>};

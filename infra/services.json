@@ -1,0 +1,28 @@
+{
+  "projectId": "65633587-fd0a-4bcb-90e4-07950348cf9f",
+  "environmentId": "7583595c-b00c-4880-98e6-cbd23e99864b",
+  "environmentName": "enarm-poc",
+  "services": {
+    "enarm-app": {
+      "id": "05ad7483-b262-4e9e-a621-723aaf5ce5c9",
+      "preDeployCommand": [
+        "node dist/server/migrate.js"
+      ]
+    },
+    "enarm-worker": {
+      "id": "6ca477d5-bd24-4915-8799-de91dc0f94f4",
+      "preDeployCommand": []
+    }
+  },
+  "settings": {
+    "builder": "RAILPACK",
+    "dockerfilePath": "Dockerfile",
+    "startCommand": "node dist/server/entry.js",
+    "healthcheckPath": "/health/ready",
+    "healthcheckTimeout": 180,
+    "preDeployTimeoutSeconds": 120,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5,
+    "sleepApplication": false
+  }
+}

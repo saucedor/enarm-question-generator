@@ -1,0 +1,2 @@
+import { Bubble, BubbleGroup } from '@/components/ui/bubble';
+export default function Demo() { return <BubbleGroup className="max-w-md"><Bubble variant="secondary" align="end">Quiero preparar una nueva solicitud.</Bubble><Bubble variant="outline">Elige una especialidad y adjunta tu documento de referencia.</Bubble><Bubble variant="muted">Demostración visual, sin conexión a IA.</Bubble></BubbleGroup> }
