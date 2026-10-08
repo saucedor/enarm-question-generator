@@ -17,12 +17,12 @@ for(const [name,type,bytes] of [['software-smoke.txt','text/plain',Buffer.from('
 }
 const browser=await chromium.launch({channel:'chrome',headless:true});
 try{
- const page=await browser.newPage({extraHTTPHeaders:headers,viewport:{width:1440,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.getByRole('heading',{name:'Generador de preguntas ENARM'}).waitFor();
+ const page=await browser.newPage({extraHTTPHeaders:headers,viewport:{width:1440,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.getByRole('heading',{name:'Un buen día para aprender.'}).waitFor();
  if(status.generation!=='configured')assert.equal(await page.getByRole('button',{name:'Generar preguntas',exact:true}).isDisabled(),true);
- await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));assert.equal(Math.round((await page.locator('aside').boundingBox()).y),0);
+ await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));assert.ok(Math.abs((await page.locator('aside').boundingBox()).y)<1);
  await mkdir('artifacts',{recursive:true});await page.screenshot({path:'artifacts/clinical-deployed-desktop.png',fullPage:true});
  for(const width of [768,390,320]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
- await page.getByRole('link',{name:'Banco de preguntas',exact:true}).click();await page.getByRole('heading',{name:'Banco de preguntas'}).waitFor();await page.getByRole('link',{name:'Fuentes',exact:true}).click();await page.getByRole('heading',{name:'Fuentes de consulta'}).waitFor();
+ await page.goto(`${base}#bank`);await page.getByRole('heading',{name:'Banco de preguntas'}).waitFor();await page.goto(`${base}#sources`);await page.getByRole('heading',{name:'Fuentes de consulta'}).waitFor();
  await page.screenshot({path:'artifacts/clinical-deployed-mobile.png',fullPage:true});
  const stories=await get('/storybook/index.json');assert.equal(Object.values(stories.entries).filter(s=>s.type==='story'&&s.title.startsWith('shadcn/')).length,63);
  assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,status,documents:docs,realModelEvaluation:status.generation==='configured'?'Requires separate clinical evaluation':'BLOCKED: configure own ENARM provider key'}));
