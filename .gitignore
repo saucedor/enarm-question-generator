@@ -6,3 +6,6 @@ dist/
 .playwright-cli/
 artifacts/
 .railway/
+
+# Intermediate PDF renders
+/tmp/pdfs/

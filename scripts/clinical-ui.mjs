@@ -7,6 +7,13 @@ const browser=await chromium.launch({channel:'chrome',headless:true});
 try {
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(base);
+ await page.getByLabel('Tema',{exact:true}).fill('Borrador incompleto de prueba');
+ await page.getByRole('radio',{name:'Mi documento',exact:true}).check();
+ await page.reload();
+ assert.equal(await page.getByLabel('Tema',{exact:true}).inputValue(),'Borrador incompleto de prueba');
+ await page.getByLabel('Tema',{exact:true}).fill('   ');
+ await page.getByRole('button',{name:'Revisar y generar',exact:true}).click();
+ await page.getByText('Escribe el tema que quieres evaluar.',{exact:true}).waitFor();
  await page.getByLabel('Tema',{exact:true}).fill('señal');
  await page.getByRole('radio',{name:'Mi documento',exact:true}).check();
  await page.getByLabel('Cargar documento',{exact:true}).setInputFiles({name:'synthetic.txt',mimeType:'text/plain',buffer:Buffer.from(source)});

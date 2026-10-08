@@ -12,6 +12,7 @@ import { Id, RunInput } from './contracts.js';
 import { Conflict, submitRun } from './runs.js';
 import { MAX_FILE_BYTES } from './config.js';
 import { questionRoutes } from './questions.js';
+import { dashboardRoutes } from './dashboard.js';
 import { extractText } from './extraction.js';
 import { library, sourcePolicy } from './sources.js';
 import { UserFacingError } from './errors.js';
@@ -40,6 +41,7 @@ export async function createApp(db: pg.Pool, boss: PgBoss, store: ObjectStore, p
   });
   app.get('/api/config',async()=>({library,sourcePolicy,difficulties,limits:{fileMB:5,pdfPages:150,textCharacters:800000,questions:10,options:[3,4,5]},model:'Generación y revisión automáticas; modelos y consumo registrados en cada resultado. Pendiente de validación académica.'}));
   await questionRoutes(app,db,boss);
+  dashboardRoutes(app,db);
   app.get('/api/runs', async () => (await db.query('SELECT * FROM enarm.runs ORDER BY created_at DESC LIMIT 25')).rows);
   app.get<{ Params: { id: string } }>('/api/runs/:id', async (req, reply) => {
     const { rows } = await db.query('SELECT * FROM enarm.runs WHERE id=$1', [Id.parse(req.params.id)]);

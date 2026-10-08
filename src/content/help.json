@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "updated": "8 de octubre de 2026",
+  "pdfUrl": "/docs/futurum-guia-flujo.pdf",
+  "pdfName": "Futurum - Guía del flujo completo.pdf",
+  "steps": [
+    {"title": "Prepara", "text": "Define tema, formato, dificultad y fuentes.", "href": "#new"},
+    {"title": "Genera", "text": "Confirma la solicitud y sigue su estado.", "href": "#new"},
+    {"title": "Revisa", "text": "Comprueba, edita y registra tu revisión.", "href": "#bank"},
+    {"title": "Practica", "text": "Contesta el conjunto y consulta explicaciones.", "href": "#bank"}
+  ],
+  "faq": [
+    {"id": "start", "question": "¿Cómo creo mi primer conjunto?", "answer": "Abre Crear preguntas, define el tema y la estructura y elige Biblioteca, Mi documento o Ambos. Pulsa Revisar y generar y confirma con Generar preguntas. Cuando la solicitud termine, abre Revisar preguntas.", "href": "#new", "link": "Crear preguntas"},
+    {"id": "formats", "question": "¿Qué cambia entre independientes y seriadas?", "answer": "Las independientes tienen un caso por pregunta. Las seriadas agrupan de 2 a 5 preguntas por caso. En ambos formatos el máximo es 10 preguntas por solicitud, con 3, 4 o 5 opciones y una mejor respuesta por pregunta."},
+    {"id": "files", "question": "¿Qué documentos puedo cargar?", "answer": "PDF con texto seleccionable o TXT UTF-8, hasta 5 MB. Un PDF puede tener hasta 150 páginas y el texto hasta 800 000 caracteres. No hay OCR: un escaneo sin texto debe convertirse antes. Usa material público o ficticio, sin datos personales.", "href": "#sources", "link": "Consultar fuentes"},
+    {"id": "waiting", "question": "¿Puedo salir mientras se generan las preguntas?", "answer": "Sí, después de que se confirme que la solicitud quedó guardada. El trabajo continúa en el servidor. Al volver, consulta Solicitudes recientes en Crear preguntas o busca el resultado completado en Banco de preguntas. Una espera larga o un error de conexión no siempre significa que la solicitud falló."},
+    {"id": "failed", "question": "¿Qué hago si falla o no puedo generar?", "answer": "Lee el mensaje de la solicitud. Si falta evidencia, acota el tema o cambia las fuentes. Si la cola o el límite diario están llenos, espera. Si el servicio no está disponible o falta saldo o acceso al proveedor, el responsable técnico debe revisarlo. Comprueba Solicitudes recientes antes de volver a enviar."},
+    {"id": "review", "question": "¿Completado significa que el contenido ya está validado?", "answer": "No. Significa que terminó el procesamiento y se guardó el conjunto. Los controles de estructura, citas y revisión de IA no sustituyen la revisión académica humana de las respuestas, explicaciones, vigencia y aplicabilidad. Registra lo comprobado con una nota de al menos 10 caracteres."},
+    {"id": "save", "question": "¿El borrador se guarda para todo el equipo?", "answer": "El borrador de configuración y las ediciones pendientes se conservan en ese navegador. Solo Guardar cambios actualiza el conjunto en el servidor. Si otra sesión guardó una versión nueva, conserva o copia tu borrador antes de cargar la versión actual. Editar vuelve a dejar pendiente la revisión académica."},
+    {"id": "practice", "question": "¿Cuándo veo las respuestas y qué puedo exportar?", "answer": "En Contestar prueba debes responder todas las preguntas y finalizar para ver la calificación, claves y explicaciones. El intento conserva la versión con la que empezó. Exportar JSON descarga el conjunto guardado; el PDF de esta sección es el manual de uso, no una exportación de preguntas."}
+  ]
+}

@@ -25,6 +25,11 @@ test('clinical lifecycle: transaction, extraction, series, revision, export, reg
  try {
   await db.query('DELETE FROM enarm.practice_attempts');await db.query('DELETE FROM pgboss.job');await db.query('UPDATE enarm.runs SET parent_set_id=NULL');await db.query('DELETE FROM enarm.question_sets');await db.query('DELETE FROM enarm.runs');await db.query('DELETE FROM enarm.documents');await db.query('DELETE FROM enarm.worker_heartbeat');
   assert.equal((await app.inject('/api/sets')).statusCode,401);
+  assert.equal((await app.inject('/api/dashboard')).statusCode,401);
+  const emptyDashboard=(await app.inject({url:'/api/dashboard',headers})).json();
+  assert.deepEqual(emptyDashboard.totals,{sets:0,questions:0,reviewed:0,pending:0,practices:0,activeRuns:0,failedRuns:0});
+  assert.equal(emptyDashboard.activity.length,7);assert.ok(emptyDashboard.activity.every((day:{sets:number})=>day.sets===0));
+  assert.deepEqual(emptyDashboard.recent,[]);assert.equal(emptyDashboard.nextReview,null);
   assert.equal((await app.inject({method:'POST',url:'/api/runs',headers:{authorization:headers.authorization},payload:{}})).statusCode,403);
   const base={specialty:'Pruebas',topic:'señal',difficulty:'básica',count:2,format:'seriadas',caseCount:1,questionsPerCase:2,sourceMode:'documento'};
   const boundary='enarm-boundary';
@@ -44,6 +49,11 @@ test('clinical lifecycle: transaction, extraction, series, revision, export, reg
   for(let n=0;n<70;n++){run=(await db.query('SELECT * FROM enarm.runs WHERE id=$1',[id])).rows[0];if(run.status==='completed')break;await setTimeout(500);}
   assert.equal(run.status,'completed');assert.equal(tries,2);assert.equal(run.result.clinicalGeneration,true);
   let set=(await app.inject({url:`/api/sets/${id}`,headers})).json();assert.equal(set.cases.length,1);assert.equal(set.cases[0].questions.length,2);assert.equal(set.sources[0].kind,'documento');
+  const dashboard=(await app.inject({url:'/api/dashboard',headers})).json();
+  assert.equal(dashboard.totals.sets,1);assert.equal(dashboard.totals.questions,2);assert.equal(dashboard.totals.pending,1);
+  assert.equal(dashboard.nextReview.id,id);assert.equal(dashboard.recent[0].questions,2);
+  assert.deepEqual(dashboard.specialties,[{name:'Pruebas',questions:2}]);
+  assert.equal(dashboard.activity.reduce((sum:number,day:{sets:number})=>sum+day.sets,0),1);
   const attempt=(await app.inject({method:'POST',url:`/api/sets/${id}/practice`,headers})).json();
   assert.equal(JSON.stringify(attempt).includes('correctIndex'),false);assert.equal(JSON.stringify(attempt).includes('explanation'),false);
   const edit={revision:set.revision,title:'Título editado',cases:structuredClone(set.cases)};edit.cases[0].questions[0].options[0].text='Alfa modificada';edit.cases[0].narrative+=' Cambio editorial guardado.';
@@ -55,10 +65,13 @@ test('clinical lifecycle: transaction, extraction, series, revision, export, reg
   const graded=await app.inject({method:'POST',url:`/api/practice/${attempt.id}/submit`,headers,payload:{answers}});assert.equal(graded.statusCode,200,graded.body);assert.equal(graded.json().score,2);assert.equal(graded.json().feedback[0].questions[0].options[0].text,'Categoría alfa');
   assert.equal((await app.inject({method:'POST',url:`/api/practice/${attempt.id}/submit`,headers,payload:{answers}})).statusCode,409);
   const recovered=(await app.inject({url:`/api/practice/${attempt.id}`,headers})).json();assert.ok(recovered.feedback);assert.equal(recovered.revision,1);
+  assert.equal((await app.inject({url:'/api/dashboard',headers})).json().totals.practices,1);
   await db.query("UPDATE enarm.worker_heartbeat SET seen_at=now() WHERE id='test'");
   const regen=await app.inject({method:'POST',url:`/api/sets/${id}/regenerate`,headers:{...headers,'idempotency-key':randomUUID()},payload:{instructions:'Nueva variante de ejemplo'}});assert.equal(regen.statusCode,202,regen.body);assert.equal(regen.json().parent_set_id,id);
   assert.equal((await app.inject({url:`/api/sets/${id}`,headers})).json().title,'Título editado');
   const reviewed=await app.inject({method:'POST',url:`/api/sets/${id}/review`,headers,payload:{revision:exported.revision,note:'Revisión sintética para probar el control de versiones.'}});assert.equal(reviewed.statusCode,200);assert.equal(reviewed.json().review_status,'reviewed');
+  const reviewedDashboard=(await app.inject({url:'/api/dashboard',headers})).json();
+  assert.equal(reviewedDashboard.totals.reviewed,1);assert.equal(reviewedDashboard.recent.find((s:{id:string})=>s.id===id).reviewed,true);
   const download=await app.inject({url:`/api/documents/${input.documentId}/download`,headers});assert.equal(download.body,sourceText);
   const broken={send:async()=>{throw new Error('enqueue failure');}} as unknown as typeof boss;const failedKey=randomUUID();await assert.rejects(submitRun(db,broken,input,failedKey));assert.equal((await db.query('SELECT 1 FROM enarm.runs WHERE idempotency_key=$1',[failedKey])).rowCount,0);
   await assert.rejects(db.query('CREATE TABLE enarm.forbidden(id int)'));await assert.rejects(workerDb.query('CREATE ROLE forbidden'));
